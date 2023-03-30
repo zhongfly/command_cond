@@ -69,8 +69,13 @@ local function magic_get(name)
     name = string.gsub(name, "_", "-")
     if not watched_properties[name] then
         watched_properties[name] = true
+        local res, err = mp.get_property_native(name)
+        if err == "property not found" then
+            msg.error("Property '" .. name .. "' was not found.")
+            return default
+        end
+        cached_properties[name] = res
         mp.observe_property(name, "native", on_property_change)
-        cached_properties[name] = mp.get_property_native(name)
     end
     return cached_properties[name]
 end
