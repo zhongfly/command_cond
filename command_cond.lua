@@ -7,8 +7,6 @@ local msg = require("mp.msg")
 local next = next
 
 local cond_map = {}
-local watched_properties = {}       -- indexed by property name (used as a set)
-local cached_properties = {}        -- property name -> last known raw value
 local o = {
     configs = "~~/input.conf",
 }
@@ -59,6 +57,13 @@ local function command(command)
 end
 
 -- https://github.com/mpv-player/mpv/blob/master/player/lua/auto_profiles.lua
+local watched_properties = {}       -- indexed by property name (used as a set)
+local cached_properties = {}        -- property name -> last known raw value
+-- Cached set of all top-level mpv properities. Only used for extra validation.
+local property_set = {}
+for _, property in pairs(mp.get_property_native("property-list")) do
+    property_set[property] = true
+end
 local function on_property_change(name, val)
     cached_properties[name] = val
 end
@@ -70,7 +75,10 @@ local function magic_get(name)
     if not watched_properties[name] then
         watched_properties[name] = true
         local res, err = mp.get_property_native(name)
-        if err == "property not found" then
+        -- Property has to not exist and the toplevel of property in the name must also
+        -- not have an existing match in the property set for this to be considered an error.
+        -- This allows things like user-data/test to still work.
+        if err == "property not found" and property_set[name:match("^([^/]+)")] == nil then
             msg.error("Property '" .. name .. "' was not found.")
             return default
         end
