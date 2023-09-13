@@ -176,6 +176,10 @@ function handler(key)
 end
 
 local function bind_from_conf(conf)
+    if conf == "input.conf" then
+        local input_conf = mp.get_property_native("input-conf")
+        conf = input_conf == "" and "~~/input.conf" or input_conf
+    end
     local path = mp.command_native({ "expand-path", conf })
     local meta, meta_error = utils.file_info(path)
     if not meta or not meta.is_file then
